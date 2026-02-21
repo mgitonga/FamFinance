@@ -5,7 +5,7 @@
 
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import type { Database } from "./types";
+import type { Database, UserRow } from "./types";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
@@ -50,7 +50,7 @@ export async function getUser() {
   return user;
 }
 
-export type UserProfile = Database["public"]["Tables"]["users"]["Row"];
+export type UserProfile = UserRow;
 
 /**
  * Get the current user's profile from the users table
@@ -74,7 +74,7 @@ export async function getUserProfile(): Promise<UserProfile | null> {
     return null;
   }
   
-  return profile;
+  return profile as UserProfile;
 }
 
 /**
