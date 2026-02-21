@@ -1,22 +1,44 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatKES } from "@/lib/currency";
+import { format } from "date-fns";
+import Link from "next/link";
+import {
+  getDashboardSummary,
+  getSpendingByCategory,
+  getMonthlyTrend,
+  getRecentTransactions,
+  getAccountBalances,
+} from "./actions";
+import { SpendingPieChart, TrendBarChart, TrendLegend } from "./charts";
 
-// Placeholder data - will be fetched from API
-const mockData = {
-  totalIncome: 150000,
-  totalExpenses: 85000,
-  netSavings: 65000,
-  budgetRemaining: 15000,
-};
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const [summary, spending, trend, transactions, accounts] = await Promise.all([
+    getDashboardSummary(),
+    getSpendingByCategory(),
+    getMonthlyTrend(),
+    getRecentTransactions(5),
+    getAccountBalances(),
+  ]);
+
+  const currentMonth = format(new Date(), "MMMM yyyy");
+  const savingsRate = summary.totalIncome > 0 
+    ? Math.round((summary.netSavings / summary.totalIncome) * 100) 
+    : 0;
+
   return (
     <div className="space-y-6">
       {/* Greeting */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Good morning! 👋</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{getGreeting()}! 👋</h1>
         <p className="text-muted-foreground">
-          Here&apos;s your financial overview for February 2026
+          Here&apos;s your financial overview for {currentMonth}
         </p>
       </div>
 
@@ -29,10 +51,10 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-success">
-              {formatKES(mockData.totalIncome)}
+              {formatKES(summary.totalIncome)}
             </div>
             <p className="text-xs text-muted-foreground">
-              +12% from last month
+              {summary.incomeChange >= 0 ? "+" : ""}{summary.incomeChange}% from last month
             </p>
           </CardContent>
         </Card>
@@ -44,10 +66,10 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-danger">
-              {formatKES(mockData.totalExpenses)}
+              {formatKES(summary.totalExpenses)}
             </div>
             <p className="text-xs text-muted-foreground">
-              -5% from last month
+              {summary.expenseChange >= 0 ? "+" : ""}{summary.expenseChange}% from last month
             </p>
           </CardContent>
         </Card>
@@ -58,273 +80,186 @@ export default function DashboardPage() {
             <span className="text-2xl">📈</span>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {formatKES(mockData.netSavings)}
+            <div className={`text-2xl font-bold ${summary.netSavings >= 0 ? "text-success" : "text-danger"}`}>
+              {summary.netSavings >= 0 ? "" : "-"}{formatKES(Math.abs(summary.netSavings))}
             </div>
             <p className="text-xs text-muted-foreground">
-              43% savings rate
+              {savingsRate}% savings rate
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Budget Remaining</CardTitle>
-            <span className="text-2xl">🎯</span>
+            <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
+            <span className="text-2xl">🏦</span>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-warning">
-              {formatKES(mockData.budgetRemaining)}
+            <div className="text-2xl font-bold">
+              {formatKES(summary.totalBalance)}
             </div>
             <p className="text-xs text-muted-foreground">
-              85% of budget used
+              Across {accounts.length} account{accounts.length !== 1 ? "s" : ""}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Dashboard Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        {/* Budget vs Actual */}
-        <Card className="lg:col-span-4">
+      {/* Charts Row */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Spending by Category */}
+        <Card>
           <CardHeader>
-            <CardTitle>Budget vs Actual</CardTitle>
+            <CardTitle>Spending by Category</CardTitle>
             <CardDescription>
-              Your spending progress by category
+              Where your money went this month
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {/* Sample budget bars */}
-              <BudgetBar category="Groceries" spent={12000} budget={15000} />
-              <BudgetBar category="Transport" spent={8500} budget={10000} />
-              <BudgetBar category="Entertainment" spent={7000} budget={5000} />
-              <BudgetBar category="Utilities" spent={4000} budget={6000} />
-              <BudgetBar category="Healthcare" spent={2000} budget={5000} />
-            </div>
+            <SpendingPieChart data={spending} />
           </CardContent>
         </Card>
 
-        {/* Upcoming Bills */}
-        <Card className="lg:col-span-3">
+        {/* Income vs Expenses Trend */}
+        <Card>
           <CardHeader>
-            <CardTitle>Upcoming Bills</CardTitle>
+            <CardTitle>Income vs Expenses</CardTitle>
             <CardDescription>
-              Bills due in the next 30 days
+              Last 6 months trend
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <BillItem name="Rent" amount={50000} daysUntil={3} />
-              <BillItem name="KPLC Electricity" amount={3500} daysUntil={7} />
-              <BillItem name="Internet" amount={4000} daysUntil={15} />
-              <BillItem name="Water" amount={800} daysUntil={22} />
-            </div>
+            <TrendBarChart data={trend} />
+            <TrendLegend />
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Transactions & Savings Goals */}
+      {/* Recent Transactions & Account Balances */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Recent Transactions */}
         <Card>
-          <CardHeader>
-            <CardTitle>Recent Transactions</CardTitle>
-            <CardDescription>
-              Your last 5 transactions
-            </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Recent Transactions</CardTitle>
+              <CardDescription>
+                Your latest activity
+              </CardDescription>
+            </div>
+            <Link 
+              href="/transactions" 
+              className="text-sm text-primary hover:underline"
+            >
+              View all
+            </Link>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <TransactionItem 
-                description="Naivas Supermarket" 
-                category="Groceries" 
-                amount={-2500} 
-                date="Today" 
-              />
-              <TransactionItem 
-                description="Uber" 
-                category="Transport" 
-                amount={-450} 
-                date="Yesterday" 
-              />
-              <TransactionItem 
-                description="Salary" 
-                category="Income" 
-                amount={150000} 
-                date="Feb 1" 
-              />
-              <TransactionItem 
-                description="Java House" 
-                category="Dining" 
-                amount={-1200} 
-                date="Jan 30" 
-              />
-              <TransactionItem 
-                description="M-Pesa Fee" 
-                category="Other" 
-                amount={-33} 
-                date="Jan 30" 
-              />
-            </div>
+            {transactions.length === 0 ? (
+              <p className="py-8 text-center text-muted-foreground">
+                No transactions yet.{" "}
+                <Link href="/transactions/new" className="text-primary hover:underline">
+                  Add one
+                </Link>
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {transactions.map((t) => (
+                  <div key={t.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">{t.categoryIcon}</span>
+                      <div>
+                        <p className="font-medium">{t.description}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {t.category} • {t.date}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={t.type === "income" ? "font-semibold text-success" : "font-semibold text-danger"}>
+                      {t.type === "income" ? "+" : "-"}{formatKES(t.amount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Savings Goals */}
+        {/* Account Balances */}
         <Card>
-          <CardHeader>
-            <CardTitle>Savings Goals</CardTitle>
-            <CardDescription>
-              Track your progress
-            </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Account Balances</CardTitle>
+              <CardDescription>
+                Your connected accounts
+              </CardDescription>
+            </div>
+            <Link 
+              href="/settings/accounts" 
+              className="text-sm text-primary hover:underline"
+            >
+              Manage
+            </Link>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <GoalItem 
-                name="Vacation Fund" 
-                current={180000} 
-                target={300000} 
-                icon="🏖️" 
-              />
-              <GoalItem 
-                name="Emergency Fund" 
-                current={75000} 
-                target={100000} 
-                icon="🛡️" 
-              />
-              <GoalItem 
-                name="New Car" 
-                current={250000} 
-                target={1000000} 
-                icon="🚗" 
-              />
-            </div>
+            {accounts.length === 0 ? (
+              <p className="py-8 text-center text-muted-foreground">
+                No accounts yet.{" "}
+                <Link href="/settings/accounts" className="text-primary hover:underline">
+                  Add one
+                </Link>
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {accounts.map((account) => (
+                  <div key={account.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">{account.icon}</span>
+                      <div>
+                        <p className="font-medium">{account.name}</p>
+                        <p className="text-sm capitalize text-muted-foreground">
+                          {account.type.replace("_", " ")}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`font-semibold ${account.balance >= 0 ? "" : "text-danger"}`}>
+                      {formatKES(account.balance)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
-}
 
-// Helper Components
-function BudgetBar({ 
-  category, 
-  spent, 
-  budget 
-}: { 
-  category: string; 
-  spent: number; 
-  budget: number;
-}) {
-  const percentage = Math.min((spent / budget) * 100, 100);
-  const status = percentage < 70 ? "safe" : percentage < 90 ? "warning" : "danger";
-  const statusColor = {
-    safe: "bg-success",
-    warning: "bg-warning",
-    danger: "bg-danger",
-  }[status];
-
-  return (
-    <div className="space-y-1">
-      <div className="flex justify-between text-sm">
-        <span>{category}</span>
-        <span className="text-muted-foreground">
-          {formatKES(spent)} / {formatKES(budget)}
-        </span>
-      </div>
-      <div className="h-2 w-full rounded-full bg-muted">
-        <div 
-          className={`h-full rounded-full ${statusColor}`}
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function BillItem({ 
-  name, 
-  amount, 
-  daysUntil 
-}: { 
-  name: string; 
-  amount: number; 
-  daysUntil: number;
-}) {
-  const urgency = daysUntil <= 3 ? "text-danger" : daysUntil <= 7 ? "text-warning" : "text-muted-foreground";
-  
-  return (
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="font-medium">{name}</p>
-        <p className={`text-sm ${urgency}`}>
-          {daysUntil === 0 ? "Due today" : `Due in ${daysUntil} days`}
-        </p>
-      </div>
-      <span className="font-semibold">{formatKES(amount)}</span>
-    </div>
-  );
-}
-
-function TransactionItem({ 
-  description, 
-  category, 
-  amount, 
-  date 
-}: { 
-  description: string; 
-  category: string; 
-  amount: number; 
-  date: string;
-}) {
-  const isIncome = amount > 0;
-  
-  return (
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="font-medium">{description}</p>
-        <p className="text-sm text-muted-foreground">{category} • {date}</p>
-      </div>
-      <span className={isIncome ? "font-semibold text-success" : "font-semibold text-danger"}>
-        {isIncome ? "+" : ""}{formatKES(Math.abs(amount))}
-      </span>
-    </div>
-  );
-}
-
-function GoalItem({ 
-  name, 
-  current, 
-  target, 
-  icon 
-}: { 
-  name: string; 
-  current: number; 
-  target: number; 
-  icon: string;
-}) {
-  const percentage = (current / target) * 100;
-  
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">{icon}</span>
-          <span className="font-medium">{name}</span>
-        </div>
-        <span className="text-sm text-muted-foreground">
-          {percentage.toFixed(0)}%
-        </span>
-      </div>
-      <div className="h-2 w-full rounded-full bg-muted">
-        <div 
-          className="h-full rounded-full bg-primary"
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
-      <p className="text-sm text-muted-foreground">
-        {formatKES(current)} of {formatKES(target)}
-      </p>
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/transactions/new"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              ➕ Add Transaction
+            </Link>
+            <Link
+              href="/import"
+              className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-accent"
+            >
+              📥 Import CSV
+            </Link>
+            <Link
+              href="/reports"
+              className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-accent"
+            >
+              📊 View Reports
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
