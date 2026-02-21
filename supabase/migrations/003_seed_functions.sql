@@ -20,7 +20,7 @@ BEGIN
   
   -- Food & Groceries
   INSERT INTO categories (id, household_id, name, type, icon, color, sort_order)
-  VALUES (uuid_generate_v4(), p_household_id, 'Food & Groceries', 'expense', '🛒', '#22C55E', 1)
+  VALUES (gen_random_uuid(), p_household_id, 'Food & Groceries', 'expense', '🛒', '#22C55E', 1)
   RETURNING id INTO v_food_id;
   
   INSERT INTO categories (household_id, name, parent_id, type, icon, sort_order)
@@ -30,7 +30,7 @@ BEGIN
 
   -- Dining
   INSERT INTO categories (id, household_id, name, type, icon, color, sort_order)
-  VALUES (uuid_generate_v4(), p_household_id, 'Dining', 'expense', '🍽️', '#F59E0B', 2)
+  VALUES (gen_random_uuid(), p_household_id, 'Dining', 'expense', '🍽️', '#F59E0B', 2)
   RETURNING id INTO v_dining_id;
   
   INSERT INTO categories (household_id, name, parent_id, type, icon, sort_order)
@@ -38,7 +38,7 @@ BEGIN
 
   -- Housing
   INSERT INTO categories (id, household_id, name, type, icon, color, sort_order)
-  VALUES (uuid_generate_v4(), p_household_id, 'Housing', 'expense', '🏡', '#3B82F6', 3)
+  VALUES (gen_random_uuid(), p_household_id, 'Housing', 'expense', '🏡', '#3B82F6', 3)
   RETURNING id INTO v_housing_id;
   
   INSERT INTO categories (household_id, name, parent_id, type, icon, sort_order)
@@ -49,7 +49,7 @@ BEGIN
 
   -- Transport
   INSERT INTO categories (id, household_id, name, type, icon, color, sort_order)
-  VALUES (uuid_generate_v4(), p_household_id, 'Transport', 'expense', '🚗', '#8B5CF6', 4)
+  VALUES (gen_random_uuid(), p_household_id, 'Transport', 'expense', '🚗', '#8B5CF6', 4)
   RETURNING id INTO v_transport_id;
   
   INSERT INTO categories (household_id, name, parent_id, type, icon, sort_order)
@@ -67,7 +67,7 @@ BEGIN
 
   -- Healthcare
   INSERT INTO categories (id, household_id, name, type, icon, color, sort_order)
-  VALUES (uuid_generate_v4(), p_household_id, 'Healthcare', 'expense', '🏥', '#EF4444', 7)
+  VALUES (gen_random_uuid(), p_household_id, 'Healthcare', 'expense', '🏥', '#EF4444', 7)
   RETURNING id INTO v_healthcare_id;
   
   INSERT INTO categories (household_id, name, parent_id, type, icon, sort_order)
@@ -75,7 +75,7 @@ BEGIN
 
   -- Children
   INSERT INTO categories (id, household_id, name, type, icon, color, sort_order)
-  VALUES (uuid_generate_v4(), p_household_id, 'Children', 'expense', '👶', '#06B6D4', 8)
+  VALUES (gen_random_uuid(), p_household_id, 'Children', 'expense', '👶', '#06B6D4', 8)
   RETURNING id INTO v_children_id;
   
   INSERT INTO categories (household_id, name, parent_id, type, icon, sort_order)
@@ -86,7 +86,7 @@ BEGIN
 
   -- Sports
   INSERT INTO categories (id, household_id, name, type, icon, color, sort_order)
-  VALUES (uuid_generate_v4(), p_household_id, 'Sports', 'expense', '⚽', '#10B981', 9)
+  VALUES (gen_random_uuid(), p_household_id, 'Sports', 'expense', '⚽', '#10B981', 9)
   RETURNING id INTO v_sports_id;
   
   INSERT INTO categories (household_id, name, parent_id, type, icon, sort_order)
@@ -94,7 +94,7 @@ BEGIN
 
   -- Giving
   INSERT INTO categories (id, household_id, name, type, icon, color, sort_order)
-  VALUES (uuid_generate_v4(), p_household_id, 'Giving', 'expense', '🎁', '#F472B6', 10)
+  VALUES (gen_random_uuid(), p_household_id, 'Giving', 'expense', '🎁', '#F472B6', 10)
   RETURNING id INTO v_giving_id;
   
   INSERT INTO categories (household_id, name, parent_id, type, icon, sort_order)
@@ -102,7 +102,7 @@ BEGIN
 
   -- Loans
   INSERT INTO categories (id, household_id, name, type, icon, color, sort_order)
-  VALUES (uuid_generate_v4(), p_household_id, 'Loans', 'expense', '💳', '#64748B', 11)
+  VALUES (gen_random_uuid(), p_household_id, 'Loans', 'expense', '💳', '#64748B', 11)
   RETURNING id INTO v_loans_id;
   
   INSERT INTO categories (household_id, name, parent_id, type, icon, sort_order)
