@@ -1,0 +1,139 @@
+@import "tailwindcss";
+
+/* FamFin Design Tokens - from Spec Appendix D */
+:root {
+  /* Primary Colors */
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  
+  /* Semantic Colors */
+  --success: #16a34a;
+  --success-foreground: #ffffff;
+  --warning: #d97706;
+  --warning-foreground: #ffffff;
+  --danger: #dc2626;
+  --danger-foreground: #ffffff;
+  
+  /* Background & Surface */
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --surface: #f8fafc;
+  --surface-foreground: #0f172a;
+  
+  /* Border & Muted */
+  --border: #e2e8f0;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  
+  /* Card */
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  
+  /* Input */
+  --input: #e2e8f0;
+  --ring: #2563eb;
+  
+  /* Radius */
+  --radius: 0.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #3b82f6;
+    --primary-foreground: #ffffff;
+    
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --warning-foreground: #000000;
+    --danger: #ef4444;
+    
+    --background: #0f172a;
+    --foreground: #f1f5f9;
+    --surface: #1e293b;
+    --surface-foreground: #f1f5f9;
+    
+    --border: #334155;
+    --muted: #1e293b;
+    --muted-foreground: #94a3b8;
+    
+    --card: #1e293b;
+    --card-foreground: #f1f5f9;
+    
+    --input: #334155;
+    --ring: #3b82f6;
+  }
+}
+
+/* Light mode class override */
+.light {
+  --primary: #2563eb;
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --surface: #f8fafc;
+  --border: #e2e8f0;
+  --muted: #f1f5f9;
+  --card: #ffffff;
+}
+
+/* Dark mode class override */
+.dark {
+  --primary: #3b82f6;
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+  --surface: #1e293b;
+  --border: #334155;
+  --muted: #1e293b;
+  --card: #1e293b;
+}
+
+@theme inline {
+  /* Colors */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  
+  /* Fonts */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  
+  /* Radius */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Utility classes for budget status colors */
+.budget-safe {
+  color: var(--success);
+}
+
+.budget-warning {
+  color: var(--warning);
+}
+
+.budget-danger {
+  color: var(--danger);
+}
