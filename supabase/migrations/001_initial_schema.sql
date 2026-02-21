@@ -3,7 +3,7 @@
 -- Description: Initial schema setup with all 13 tables
 
 -- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Using built-in gen_random_uuid() instead of uuid-ossp extension
 
 -- Create custom ENUM types
 CREATE TYPE user_role AS ENUM ('admin', 'contributor');
@@ -18,7 +18,7 @@ CREATE TYPE notification_type AS ENUM ('bill_reminder', 'budget_warning', 'budge
 
 -- Households table
 CREATE TABLE households (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(100) NOT NULL,
   primary_currency VARCHAR(3) NOT NULL DEFAULT 'KES',
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -37,7 +37,7 @@ CREATE TABLE users (
 
 -- Accounts table
 CREATE TABLE accounts (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   household_id UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
   name VARCHAR(100) NOT NULL,
   type account_type NOT NULL,
@@ -48,7 +48,7 @@ CREATE TABLE accounts (
 
 -- Categories table (supports parent-child hierarchy)
 CREATE TABLE categories (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   household_id UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
   name VARCHAR(100) NOT NULL,
   parent_id UUID REFERENCES categories(id) ON DELETE SET NULL,
@@ -62,7 +62,7 @@ CREATE TABLE categories (
 
 -- Transactions table
 CREATE TABLE transactions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   household_id UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
   account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
   category_id UUID NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
@@ -86,7 +86,7 @@ CREATE TABLE transactions (
 
 -- Budgets table
 CREATE TABLE budgets (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   household_id UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
   category_id UUID NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
   amount DECIMAL(15,2) NOT NULL CHECK (amount > 0),
@@ -98,7 +98,7 @@ CREATE TABLE budgets (
 
 -- Overall budgets table
 CREATE TABLE overall_budgets (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   household_id UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
   amount DECIMAL(15,2) NOT NULL CHECK (amount > 0),
   month INT NOT NULL CHECK (month >= 1 AND month <= 12),
@@ -109,7 +109,7 @@ CREATE TABLE overall_budgets (
 
 -- Recurring transactions table
 CREATE TABLE recurring_transactions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   household_id UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
   category_id UUID NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
   account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
@@ -130,7 +130,7 @@ FOREIGN KEY (recurring_id) REFERENCES recurring_transactions(id) ON DELETE SET N
 
 -- Savings goals table
 CREATE TABLE savings_goals (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   household_id UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
   name VARCHAR(100) NOT NULL,
   target_amount DECIMAL(15,2) NOT NULL CHECK (target_amount > 0),
@@ -144,7 +144,7 @@ CREATE TABLE savings_goals (
 
 -- Goal contributions table
 CREATE TABLE goal_contributions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   goal_id UUID NOT NULL REFERENCES savings_goals(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   amount DECIMAL(15,2) NOT NULL CHECK (amount > 0),
@@ -155,7 +155,7 @@ CREATE TABLE goal_contributions (
 
 -- Debts table
 CREATE TABLE debts (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   household_id UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
   name VARCHAR(100) NOT NULL,
   type debt_type NOT NULL,
@@ -172,7 +172,7 @@ CREATE TABLE debts (
 
 -- Bill reminders table
 CREATE TABLE bill_reminders (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   household_id UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
   name VARCHAR(100) NOT NULL,
   amount DECIMAL(15,2),
@@ -186,7 +186,7 @@ CREATE TABLE bill_reminders (
 
 -- Notifications table
 CREATE TABLE notifications (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   household_id UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   type notification_type NOT NULL,
@@ -291,3 +291,4 @@ CREATE TRIGGER update_goal_amount_trigger
   AFTER INSERT OR DELETE ON goal_contributions
   FOR EACH ROW
   EXECUTE FUNCTION update_goal_current_amount();
+
