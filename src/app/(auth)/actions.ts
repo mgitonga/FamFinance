@@ -229,19 +229,7 @@ export async function inviteUser(formData: FormData): Promise<AuthResult> {
   });
 
   if (inviteError) {
-    // Fallback: create user profile entry for when they sign up
-    const { error: pendingError } = await supabase.from("pending_invites").insert({
-      email,
-      name,
-      role,
-      household_id: profile.household_id,
-    });
-
-    if (pendingError) {
-      return { error: "Failed to send invitation" };
-    }
-
-    return { success: true };
+    return { error: "Failed to send invitation: " + inviteError.message };
   }
 
   // Create user profile

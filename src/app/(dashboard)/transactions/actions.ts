@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { TransactionRow } from "@/lib/supabase/types";
+import { endOfMonth, format } from "date-fns";
+import { formatKES } from "@/lib/currency";
 
 export type ActionResult = {
   error?: string;
@@ -30,6 +32,137 @@ export type TransactionWithDetails = TransactionRow & {
   account?: { id: string; name: string; type: string };
   user?: { id: string; name: string };
 };
+
+type BudgetAlertContext = {
+  householdId: string;
+  userId: string;
+  categoryId: string;
+  date: string;
+};
+
+async function maybeCreateBudgetNotifications(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  context: BudgetAlertContext
+) {
+  const { householdId, userId, categoryId, date } = context;
+  const parsedDate = new Date(date);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return;
+  }
+
+  const month = parsedDate.getMonth() + 1;
+  const year = parsedDate.getFullYear();
+  const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+  const endDate = format(endOfMonth(new Date(year, month - 1, 1)), "yyyy-MM-dd");
+
+  const { data: transactions } = await supabase
+    .from("transactions")
+    .select("amount, category_id")
+    .eq("household_id", householdId)
+    .eq("type", "expense")
+    .gte("date", startDate)
+    .lte("date", endDate);
+
+  let totalSpent = 0;
+  let categorySpent = 0;
+
+  (transactions || []).forEach((transaction) => {
+    const amount = Number(transaction.amount);
+    totalSpent += amount;
+    if (transaction.category_id === categoryId) {
+      categorySpent += amount;
+    }
+  });
+
+  const { data: categoryBudget } = await supabase
+    .from("budgets")
+    .select("amount")
+    .eq("household_id", householdId)
+    .eq("category_id", categoryId)
+    .eq("month", month)
+    .eq("year", year)
+    .maybeSingle();
+
+  const { data: overallBudget } = await supabase
+    .from("overall_budgets")
+    .select("amount")
+    .eq("household_id", householdId)
+    .eq("month", month)
+    .eq("year", year)
+    .maybeSingle();
+
+  const warningThreshold = 0.8;
+
+  const createNotification = async (
+    type: "budget_warning" | "budget_exceeded",
+    title: string,
+    message: string,
+    actionUrl: string
+  ) => {
+    const { data: existing } = await supabase
+      .from("notifications")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("type", type)
+      .eq("action_url", actionUrl)
+      .maybeSingle();
+
+    if (existing) return;
+
+    await supabase.from("notifications").insert({
+      household_id: householdId,
+      user_id: userId,
+      type,
+      title,
+      message,
+      action_url: actionUrl,
+    });
+  };
+
+  if (categoryBudget?.amount) {
+    const budgetAmount = Number(categoryBudget.amount);
+    const categoryUrl = `/budgets?month=${month}&year=${year}&categoryId=${categoryId}`;
+
+    if (categorySpent >= budgetAmount) {
+      const overage = categorySpent - budgetAmount;
+      await createNotification(
+        "budget_exceeded",
+        "Budget Exceeded",
+        `You exceeded your category budget by ${formatKES(overage)}.`,
+        categoryUrl
+      );
+    } else if (categorySpent >= budgetAmount * warningThreshold) {
+      await createNotification(
+        "budget_warning",
+        "Budget Warning",
+        `You have used ${formatKES(categorySpent)} of ${formatKES(budgetAmount)} for this category.`,
+        categoryUrl
+      );
+    }
+  }
+
+  if (overallBudget?.amount) {
+    const overallAmount = Number(overallBudget.amount);
+    const overallUrl = `/budgets?month=${month}&year=${year}`;
+
+    if (totalSpent >= overallAmount) {
+      const overage = totalSpent - overallAmount;
+      await createNotification(
+        "budget_exceeded",
+        "Overall Budget Exceeded",
+        `You exceeded your overall budget by ${formatKES(overage)}.`,
+        overallUrl
+      );
+    } else if (totalSpent >= overallAmount * warningThreshold) {
+      await createNotification(
+        "budget_warning",
+        "Overall Budget Warning",
+        `You have used ${formatKES(totalSpent)} of ${formatKES(overallAmount)} overall.`,
+        overallUrl
+      );
+    }
+  }
+}
 
 /**
  * Get transactions with filtering, pagination, and sorting
@@ -249,6 +382,15 @@ export async function createTransaction(formData: FormData): Promise<ActionResul
     p_amount: balanceChange,
   });
 
+  if (type === "expense") {
+    await maybeCreateBudgetNotifications(supabase, {
+      householdId: profile.household_id,
+      userId: user.id,
+      categoryId: categoryId,
+      date: date,
+    });
+  }
+
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
   return { success: true, data: transaction };
@@ -356,6 +498,15 @@ export async function updateTransaction(formData: FormData): Promise<ActionResul
     await supabase.rpc("update_account_balance", {
       p_account_id: accountId,
       p_amount: newEffect,
+    });
+  }
+
+  if (type === "expense") {
+    await maybeCreateBudgetNotifications(supabase, {
+      householdId: profile.household_id,
+      userId: user.id,
+      categoryId: categoryId,
+      date: date,
     });
   }
 
